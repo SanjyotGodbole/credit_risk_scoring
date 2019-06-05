@@ -1,0 +1,176 @@
+---
+title: "Untitled"
+author: "Sanjyot Godbole"
+date: "May 16, 2019"
+output: 
+  html_document:
+    toc: true
+    theme: united
+    toc_depth: 4
+    toc_float:
+      collapsed: false
+      smooth_scroll: false  
+---
+
+```{r}
+# clear your environment
+rm(list = ls(all=TRUE))
+```
+
+
+# Reading & Understanding the Data
+
+* Make sure the dataset is located in your current working directory
+
+```{r}
+input_data = read.csv('trainDF_for_Clustering_18-12-01.csv', header = T)
+```
+
+
+* Use the str(), summary() functions to get a feel for the dataset.
+
+```{r}
+str(input_data)
+```
+
+```{r}
+summary(input_data)
+```
+
+
+# Data Pre-processing
+
+
+* Attribute 'ProfessionalLicensure', 'eCommerceAccount' and 'NoOfProperties' are categorical variables. Lets convert appropriately.
+
+```{r}
+input_data$ProfessionalLicensure = as.factor(as.character(input_data$ProfessionalLicensure))
+
+input_data$eCommerceAccount = as.factor(as.character(input_data$eCommerceAccount))
+input_data$NoOfProperties = as.factor(as.character(input_data$NoOfProperties))
+
+#Now see the structure of the dataframe
+str(input_data)
+```
+
+## Identify the categorical and numerical attributes appropriately
+
+```{r}
+
+# extract the names of categorical columns
+categorical_cols = c()
+
+for (coln in names(input_data)){
+  if (is.factor(input_data[[coln]])){
+    categorical_cols = append(categorical_cols,coln)
+  }
+}
+
+categorical_cols = setdiff(categorical_cols,"CustomerID")
+print(categorical_cols)
+```
+
+```{r}
+#Now, how to find the numerical attributes?
+numerical_cols = setdiff(colnames(input_data), categorical_cols)
+
+numerical_cols = setdiff(numerical_cols,"CustomerID")
+numerical_cols
+```
+
+
+* Convert the Customer IDs to the row names, as this will later help us in visualising the clusters
+
+```{r}
+rownames(input_data) <- input_data$CustomerID
+customerID = input_data$CustomerID
+
+```
+
+## Drop the CustomerID column 
+* (As it is now just redundant information)
+
+```{r}
+input_data$CustomerID = NULL
+# OR
+# input_data <- input_data[, -c(colnames(input_data) %in% ("name"))]
+```
+
+
+* Find the number of missing values and either impute or omit them
+
+```{r}
+sum(is.na(input_data))
+```
+
+* There are no missing values in dataset
+
+```{r}
+# check no missing value in categorical column
+# sum(is.na(input_data$shelf))
+# had there been any missing value we would have imputed it seperately from numerical using modes.
+```
+
+# Multiple Linear Regression
+
+```{r}
+model = lm(CreditRiskScore~.,input_data)
+summary(model)
+```
+
+
+```{r}
+plot(model)
+```
+
+# Variance Inflation Factor
+
+```{r}
+library(car)
+vif(model)
+```
+
+# StepAIC
+
+```{r}
+library(MASS)
+
+#Stepwise Regression
+inputData_step <- stepAIC(lm(CreditRiskScore~.,input_data), direction="both")
+```
+
+# Multiple Linear Regression after feature selection by stepAIC
+
+```{r}
+model2 = lm(CreditRiskScore ~ eCommerceAccount + age_in_years + Total_no_of_loan_tenure_with_current + 
+    Villa_House + Investment_SelfOccupied + Payment_Status + 
+    Remaining_loan_tenure + ratio_RE_inflation + ratio_Loan_to_Appraisedvalu_Percent + 
+    ratio_Interestrate + ratio_outstanding + diff_Salary_Utility + 
+    ratio_curr_outstanding_Salary,input_data)
+summary(model2)
+
+
+
+```
+
+```{r}
+class(model2)
+
+```
+# Feature Importance
+
+```{r}
+library(caret)
+FeatureImp =  varImp(model2)
+FeatureImp$Feature = rownames(FeatureImp)
+
+names(FeatureImp) = c("Importance", "Feature")
+FeatureImp = FeatureImp[order(-FeatureImp$Importance),]
+
+
+library(ggplot2)
+
+p = ggplot(FeatureImp, aes(x = reorder(Feature, Importance), y = Importance, fill = Importance)) + geom_col() + coord_flip()
+
+p
+```

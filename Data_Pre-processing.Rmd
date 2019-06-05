@@ -1,0 +1,243 @@
+---
+title: "PHD_Clustering_Submission"
+author: "Sanjyot Godbole"
+date: "May 10, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# clear your environment
+rm(list = ls(all=TRUE))
+```
+
+# Problem Description
+
+* To  segment the customers which will help to understand their sensitivity to the interest rate or product features to improve retention ie., to reduce the default or transfer of loan to competition and to understand how to structure offers for better revenue.
+
+# Reading & Understanding the Data
+
+```{r}
+fullDataDF = read.csv('finalDF.csv', header = T)
+```
+
+# Data Pre-processing
+
+*Deleting the columns which are not required for further analyis 
+* Deleting 47 columns 
+
+```{r}
+
+fullDataDF$Salary_binned_kmeans = NULL
+fullDataDF$Salary_binned = NULL
+fullDataDF$ageYears_binned_kmeans = NULL
+fullDataDF$ageYears_binned = NULL
+fullDataDF$credRScore_binned_kmeans = NULL
+fullDataDF$credRScore_binned = NULL
+fullDataDF$Starting_Instalment = NULL
+fullDataDF$Maturity_Period = NULL
+fullDataDF$Starting_outstanding = NULL
+fullDataDF$Current_Instalment_Sequence = NULL
+fullDataDF$Current_Outstanding = NULL
+fullDataDF$UtilitySpending_binned_kmeans = NULL
+fullDataDF$UtilitySpending_binned = NULL
+fullDataDF$Total_no_of_loan_tenure_with_current_binned_kmeans = NULL
+fullDataDF$Total_no_of_loan_tenure_with_current_binned = NULL
+fullDataDF$Avg_loan_paid_in_transaction_binned_kmeans = NULL
+fullDataDF$Avg_loan_paid_in_transaction_binned = NULL
+fullDataDF$Starting_Instalment_binned_kmeans = NULL
+fullDataDF$Starting_Instalment_binned = NULL
+fullDataDF$Maturity_Period_binned_kmeans = NULL
+fullDataDF$Maturity_Period_binned = NULL
+fullDataDF$Starting_outstanding_binned_kmeans = NULL
+fullDataDF$Starting_outstanding_binned = NULL
+fullDataDF$Starting_Loan_to_Appraisedvalu_Percent_binned_kmeans = NULL
+fullDataDF$Starting_Loan_to_Appraisedvalu_Percent_binned = NULL
+fullDataDF$StartingInterestrate_binned_kmeans = NULL
+fullDataDF$StartingInterestrate_binned = NULL
+fullDataDF$RealEstate_Starting_Inflation_binned_kmeans = NULL
+fullDataDF$RealEstate_Starting_Inflation_binned = NULL
+fullDataDF$Current_Instalment_Sequence_binned_kmeans = NULL
+fullDataDF$Current_Instalment_Sequence_binned = NULL
+fullDataDF$Current_Outstanding_binned_kmeans = NULL
+fullDataDF$Current_Outstanding_binned = NULL
+fullDataDF$Current_Loan_to_Appraisedvalu_Percent_binned_kmeans = NULL
+fullDataDF$Current_Loan_to_Appraisedvalu_Percent_binned = NULL
+fullDataDF$RealEstate_Current_Inflation_binned_kmeans = NULL
+fullDataDF$RealEstate_Current_Inflation_binned = NULL
+fullDataDF$Remaining_loan_tenure_binned_kmeans = NULL
+fullDataDF$Remaining_loan_tenure_binned = NULL
+fullDataDF$loan_paid_off_binned_kmeans = NULL
+fullDataDF$loan_paid_off_binned = NULL
+fullDataDF$CurrentInterestrate_binned_kmeans = NULL
+fullDataDF$CurrentInterestrate_binned = NULL
+fullDataDF$GDP_binned_kmeans = NULL
+fullDataDF$GDP_binned = NULL
+fullDataDF$UnemploymentRate_binned_kmeans = NULL
+fullDataDF$UnemploymentRate_binned = NULL
+
+```
+
+* Identify the categorical and numerical attributes appropriately
+
+```{r}
+cat_Attr = c("ProfessionalLicensure","eCommerceAccount","SocialMediaAccount",
+             "NoOfProperties","Asset_type","Urban_Development","Villa_House",
+             "Investment_SelfOccupied","Payment_Status")
+# print("Caterorical Attributes: ")
+# print(cat_Attr)
+
+```
+
+```{r}
+num_Attr = setdiff(colnames(fullDataDF), cat_Attr)
+
+# print("Numerical Attributes: ")
+# print(num_Attr)
+```
+
+*Converting the class of all the categorical features to factor
+
+```{r}
+fullDataDF[cat_Attr] <- lapply(fullDataDF[cat_Attr], factor)
+```
+
+* Convert the CustomerID of the dataset to the row names which will later help in visualising the clusters
+
+```{r}
+rownames(fullDataDF) <- fullDataDF$CustomerID
+
+```
+
+* Dropping CustomerID column as the information is already captured as row names
+
+```{r}
+fullDataDF$CustomerID = NULL
+```
+
+* There are no missing values in the dataset
+
+```{r}
+# Make a copy of the dataframe for later use (mixed attributes)
+fullDataDF_ori = fullDataDF
+```
+ 
+* Converting categorical features to numeric features by using dummy
+_ ProfessionalLicensure _
+
+```{r}
+library("dummies")
+ProfessionalLicensure_Dummies = data.frame(dummy(fullDataDF$ProfessionalLicensure))
+# name the new attributes appropriately
+names(ProfessionalLicensure_Dummies) = c("ProfessionalLicensure0","ProfessionalLicensure1")
+# head(ProfessionalLicensure_Dummies)
+```
+
+_ eCommerceAccount _
+
+```{r}
+eCommerceAccount_Dummies = data.frame(dummy(fullDataDF$eCommerceAccount))
+# name the new attributes appropriately
+names(eCommerceAccount_Dummies) = c("eCommerceAccount0","eCommerceAccount1")
+# head(eCommerceAccount_Dummies)
+```
+
+_ SocialMediaAccount _
+
+```{r}
+SocialMediaAccount_Dummies = data.frame(dummy(fullDataDF$SocialMediaAccount))
+# naming the new attributes appropriately
+names(SocialMediaAccount_Dummies) = c("SocialMediaAccount_No","SocialMediaAccount_Yes")
+# head(SocialMediaAccount_Dummies)
+```
+
+_ NoOfProperties _
+
+```{r}
+NoOfProperties_Dummies = data.frame(dummy(fullDataDF$NoOfProperties))
+# naming the new attributes appropriately
+names(NoOfProperties_Dummies) = c("NoOfProperties_1","NoOfProperties_2", "NoOfProperties_3","NoOfProperties_4")
+# head(NoOfProperties_Dummies)
+```
+
+__ Asset_type __
+
+```{r}
+Asset_type_Dummies = data.frame(dummy(fullDataDF$Asset_type))
+# naming the new attributes appropriately
+names(Asset_type_Dummies) = c("Asset_type_Complex_With_shared_services", "Asset_type_No_shred_services")
+# head(Asset_type_Dummies)
+```
+
+__ Urban_Development  __
+
+```{r}
+Urban_Development_Dummies = data.frame(dummy(fullDataDF$Urban_Development))
+# naming the new attributes appropriately
+names(Urban_Development_Dummies) = c("Urban_Development_No","Urban_Development_Yes")
+# head(Urban_Development_Dummies)
+```
+
+__ Villa_House  __
+
+```{r}
+Villa_House_Dummies = data.frame(dummy(fullDataDF$Villa_House))
+# naming the new attributes appropriately
+names(Villa_House_Dummies) = c("Villa_House_No","Villa_House_Yes")
+# head(Villa_House_Dummies)
+```
+
+__ Investment_SelfOccupied  __ 
+
+```{r}
+Investment_SelfOccupied_Dummies = data.frame(dummy(fullDataDF$Investment_SelfOccupied))
+# naming the new attributes appropriately
+names(Investment_SelfOccupied_Dummies) = c("Investment_SelfOccupied_Investment", "Investment_SelfOccupied_Self_Occupancy")
+# head(Investment_SelfOccupied_Dummies)
+```
+
+__ Payment_Status  __ 
+
+```{r}
+Payment_Status_Dummies = data.frame(dummy(fullDataDF$Payment_Status))
+# naming the new attributes appropriately
+names(Payment_Status_Dummies) = c("Payment_Status_Default", "Payment_Status_Non-Payoff/Non-Default", "Payment_Status_Payoff")
+# head(Payment_Status_Dummies)
+```
+
+* Removing the original categorical features and adding the newly created dummy features
+
+```{r}
+fullDataDF$ProfessionalLicensure = NULL
+fullDataDF$eCommerceAccount = NULL
+fullDataDF$SocialMediaAccount = NULL
+fullDataDF$NoOfProperties = NULL
+fullDataDF$Asset_type = NULL
+fullDataDF$Urban_Development = NULL
+fullDataDF$Villa_House = NULL
+fullDataDF$Investment_SelfOccupied = NULL
+fullDataDF$Payment_Status = NULL
+
+
+fullDataDF = data.frame(cbind(fullDataDF, ProfessionalLicensure_Dummies, eCommerceAccount_Dummies, SocialMediaAccount_Dummies, NoOfProperties_Dummies, Asset_type_Dummies, Urban_Development_Dummies, Villa_House_Dummies, Investment_SelfOccupied_Dummies, Payment_Status_Dummies))
+```
+
+* The data must be scaled, before measuring any type of distance metric as the variables with higher ranges will significantly influence the distance
+
+```{r}
+num_Attr <- num_Attr[ num_Attr != "CustomerID" ]
+# num_Attr
+```
+
+```{r}
+fullDataDF[, num_Attr] =  scale(fullDataDF[,num_Attr], center = T, scale = T)
+``` 
+
+* Saving a CSV file of fullDataDF 
+
+```{r}
+#Saving a CSV file of fullDataDF  
+rownames(fullDataDF) -> fullDataDF$CustomerID
+write.csv(fullDataDF, "fullDataDF_preprocessed2.csv", row.names=F)
+```
+
+
